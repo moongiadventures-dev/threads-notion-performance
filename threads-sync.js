@@ -4,8 +4,6 @@ import fetch from 'node-fetch';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
-import nacl from 'tweetnacl';
-import { encodeBase64, decodeBase64 } from 'tweetnacl-util';
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -46,28 +44,13 @@ async function updateGitHubSecret(secretName, secretValue) {
     );
     const { key, key_id } = await keyRes.json();
 
-    // Encrypt using tweetnacl (libsodium sealed box)
-    const messageBytes = Buffer.from(secretValue);
-    const keyBytes = decodeBase64(key);
-    const encryptedBytes = nacl.box.before
-      ? (() => {
-          // Use sealed box encryption
-          const nonce = nacl.randomBytes(nacl.box.nonceLength);
-          const ephemeralKeypair = nacl.box.keyPair();
-          const encrypted = nacl.box(messageBytes, nonce, keyBytes, ephemeralKeypair.secretKey);
-          const combined = new Uint8Array(ephemeralKeypair.publicKey.length + nonce.length + encrypted.length);
-          combined.set(ephemeralKeypair.publicKey, 0);
-          combined.set(nonce, ephemeralKeypair.publicKey.length);
-          combined.set(encrypted, ephemeralKeypair.publicKey.length + nonce.length);
-          return combined;
-        })()
-      : nacl.box.keyPair().publicKey; // fallback
-
-    // Use libsodium-style sealed box (correct GitHub format)
+    // Encrypt using libsodium sealed box (required by GitHub API)
     const { default: sodium } = await import('libsodium-wrappers');
     await sodium.ready;
-    const encryptedValue = sodium.crypto_box_seal(messageBytes, keyBytes);
-    const encrypted_value = encodeBase64(encryptedValue);
+    const messageBytes = Buffer.from(secretValue);
+    const keyBytes = sodium.from_base64(key, sodium.base64_variants.ORIGINAL);
+    const encryptedBytes = sodium.crypto_box_seal(messageBytes, keyBytes);
+    const encrypted_value = sodium.to_base64(encryptedBytes, sodium.base64_variants.ORIGINAL);
 
     // Update the secret
     const updateRes = await fetch(
