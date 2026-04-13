@@ -146,9 +146,9 @@ async function saveToken(token, expiresIn) {
 async function getValidToken() {
   const { token, expires_at } = loadToken();
   if (!token) throw new Error('No Threads token found');
-  const sevenDays  = 7 * 24 * 60 * 60 * 1000;
+  const fourteenDays = 14 * 24 * 60 * 60 * 1000;
   const isShortLived = !expires_at;
-  const isExpiring   = expires_at && (expires_at - Date.now()) < sevenDays;
+  const isExpiring   = expires_at && (expires_at - Date.now()) < fourteenDays;
 
   if (isExpiring && !isShortLived) {
     try {
