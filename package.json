@@ -8,7 +8,9 @@
     "sync": "node threads-sync.js --run-now",
     "schedule": "node threads-sync.js",
     "logs": "tail -f sync.log",
-    "full-sync": "node threads-sync.js --full-sync"
+    "full-sync": "node threads-sync.js --full-sync",
+    "archive": "node archive-local.js",
+    "archive:force": "node archive-local.js --force"
   },
   "dependencies": {
     "@notionhq/client": "^2.2.15",
